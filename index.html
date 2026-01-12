@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Delta Force Ops Center - iOS 26</title>
+    <style>
+        :root {
+            --ios-bg: #FFFFFF;
+            --liquid-glass: rgba(255, 255, 255, 0.72);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --accent-blue: #007AFF;
+            --ios-blur: blur(30px) saturate(210%);
+            --spring-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            background: var(--ios-bg); 
+            background-image: radial-gradient(at 0% 0%, #f5faff 0%, transparent 40%), 
+                              radial-gradient(at 100% 100%, #fff5f8 0%, transparent 40%);
+            color: #000; 
+            font-family: -apple-system, "SF Pro Display", "PingFang SC", sans-serif;
+            padding-bottom: 120px;
+            overflow-x: hidden;
+        }
+
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--liquid-glass);
+            backdrop-filter: var(--ios-blur); -webkit-backdrop-filter: var(--ios-blur);
+            padding: 18px; border-bottom: 0.5px solid rgba(0,0,0,0.05);
+            text-align: center; font-weight: 700; font-size: 17px;
+        }
+
+        .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+        .section-title { font-size: 13px; color: #8e8e93; margin: 15px 0 10px 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .liquid-card {
+            background: var(--liquid-glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 26px;
+            padding: 16px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            transition: all 0.4s var(--spring-easing);
+            cursor: pointer;
+        }
+
+        .liquid-card:active { transform: scale(0.94); background: rgba(255, 255, 255, 0.95); }
+        .item-flex { display: flex; align-items: center; gap: 14px; }
+        .icon-wrap { width: 46px; height: 46px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .info-wrap { flex: 1; }
+        .name-text { font-weight: 600; font-size: 16px; color: #1c1c1e; }
+        .sub-text { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+        .price-text { font-weight: 700; color: #AF8B3F; font-size: 15px; }
+
+        #ios-alert-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.15); z-index: 2000;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px); transition: all 0.3s;
+        }
+
+        .ios-alert {
+            background: var(--liquid-glass);
+            backdrop-filter: var(--ios-blur); -webkit-backdrop-filter: var(--ios-blur);
+            width: 80%; max-width: 300px;
+            border-radius: 28px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            padding: 24px 20px;
+            text-align: center;
+            transform: scale(0.8); opacity: 0;
+            transition: all 0.4s var(--spring-easing);
+        }
+
+        .alert-active #ios-alert-overlay { display: flex; }
+        .alert-active .ios-alert { transform: scale(1); opacity: 1; }
+        .alert-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: #000; }
+        .alert-body { font-size: 14px; color: #3a3a3c; line-height: 1.5; margin-bottom: 24px; text-align: left; }
+        .alert-btn { 
+            width: 100%; padding: 14px; border: none; border-radius: 16px; 
+            background: var(--accent-blue); color: #fff; font-weight: 700; font-size: 16px;
+            box-shadow: 0 8px 20px rgba(0,122,255,0.3);
+        }
+
+        .ios-nav {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; height: 74px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: var(--ios-blur); -webkit-backdrop-filter: var(--ios-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 37px;
+            display: flex; justify-content: space-around; align-items: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); z-index: 1000;
+        }
+
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #8e8e93; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: var(--accent-blue); transform: scale(1.1); }
+    </style>
+</head>
+<body class="light-mode">
+
+<header>三角洲行动：消耗品查询系统 (S7)</header>
+
+<div class="container" id="content-view"></div>
+
+<div id="ios-alert-overlay" onclick="closeAlert()">
+    <div class="ios-alert" onclick="event.stopPropagation()">
+        <div class="alert-title" id="alert-title"></div>
+        <div class="alert-body" id="alert-body"></div>
+        <button class="alert-btn" onclick="closeAlert()">确定</button>
+    </div>
+</div>
+
+<nav class="ios-nav">
+    <div class="nav-item active" onclick="render('meds', this)">💊<span>药品列表</span></div>
+    <div class="nav-item" onclick="render('sets', this)">🎒<span>方案推荐</span></div>
+    <div class="nav-item" onclick="render('info', this)">🩺<span>状态说明</span></div>
+</nav>
+
+<script>
+    const data = {
+        meds: [
+            { group: "止血与手术 (核心)", list: [
+                { n: "CAT止血带", p: "2,600", m: "2.5秒 | 4次", d: "极速止血，适用于高强度对抗。不具备手术功能，仅针对流血状态。", i: "🩹" },
+                { n: "战地医疗包", p: "45,000", m: "5.0秒 | 12次", d: "顶级医疗物资，可同时处理流血、手术及回血，空间占用较大。", i: "🎒" },
+                { n: "标准手术包", p: "8,500", m: "8.0秒 | 4次", d: "处理骨折和损毁部位的核心物资，使用时移动受限明显。", i: "🧵" }
+            ]},
+            { group: "止痛与强化", list: [
+                { n: "DVE止疼片", p: "24,000", m: "350秒 | 5次", d: "止疼时间最长，防止因部位损毁导致的移速下降和画面模糊。", i: "💊" },
+                { n: "肾上腺素注射器", p: "12,000", m: "120秒 | 1次", d: "瞬间恢复耐力上限并提供持续回血效果，突围必备。", i: "💉" },
+                { n: "瓶装抗生素", p: "6,600", m: "240秒 | 3次", d: "高性价比止疼选择，适合常规任务携带。", i: "🍼" }
+            ]}
+        ],
+        sets: [
+            { t: "GTI 高压突击方案", c: "#FF3B30", d: "DVE止疼药 + 战地箱 + CAT止血带 + 强化注射器", p: "高净值行动" },
+            { t: "零号勤务 均衡方案", c: "#FF9500", d: "抗生素 + 标准手术包 + 弹力绷带 + 500ml生理盐水", p: "中度危险区" },
+            { t: "入场 经济方案", c: "#34C759", d: "止疼片 + 简易绷带 + 简易手术工具", p: "摸金跑图" }
+        ],
+        info: [
+            { t: "部位损毁 (骨折)", d: "腿部损毁将无法冲刺及跳跃；手部损毁将大幅增加武器后坐力并减慢开镜速度。需使用手术包修复。" },
+            { t: "重度流血", d: "若不及时止血，每5秒扣除1%总生命值上限，且无法通过普通回血道具恢复。" },
+            { t: "止疼覆盖", d: "止疼药可忽略部位损毁带来的负面移动效果，但不会恢复部位血量。" }
+        ]
+    };
+
+    function render(type, el) {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+        const view = document.getElementById('content-view');
+        let html = '';
+
+        if (type === 'meds') {
+            data.meds.forEach(g => {
+                html += `<div class="section-title">${g.group}</div>`;
+                g.list.forEach(item => {
+                    html += `
+                    <div class="liquid-card" onclick="openAlert('${item.n}', '${item.d}<br><br><b>属性：</b>${item.m}<br><b>估价：</b>${item.p}')">
+                        <div class="item-flex">
+                            <div class="icon-wrap">${item.i}</div>
+                            <div class="info-wrap">
+                                <div class="name-text">${item.n}</div>
+                                <div class="sub-text">${item.m}</div>
+                            </div>
+                            <div class="price-text">≈${item.p}</div>
+                        </div>
+                    </div>`;
+                });
+            });
+        } else if (type === 'sets') {
+            data.sets.forEach(s => {
+                html += `
+                <div class="liquid-card" onclick="openAlert('${s.t}', '<b>包含：</b><br>${s.d}<br><br><b>场景：</b>${s.p}')">
+                    <div style="color:${s.c}; font-weight:800; font-size:12px; margin-bottom:6px;">${s.t}</div>
+                    <div class="name-text">${s.d}</div>
+                </div>`;
+            });
+        } else {
+            data.info.forEach(i => {
+                html += `
+                <div class="liquid-card" onclick="openAlert('${i.t}', '${i.d}')">
+                    <div style="font-weight:700; margin-bottom:5px;">${i.t}</div>
+                    <div class="sub-text" style="font-size:13px; color:#333;">${i.d}</div>
+                </div>`;
+            });
+        }
+        view.innerHTML = html;
+        haptic(10);
+    }
+
+    function openAlert(title, body) {
+        document.getElementById('alert-title').innerHTML = title;
+        document.getElementById('alert-body').innerHTML = body;
+        document.body.classList.add('alert-active');
+        haptic(15);
+    }
+
+    function closeAlert() {
+        document.body.classList.remove('alert-active');
+        haptic(5);
+    }
+
+    function haptic(ms) {
+        if (window.navigator.vibrate) window.navigator.vibrate(ms);
+    }
+
+    render('meds', document.querySelector('.nav-item'));
+</script>
+</body>
+</html>
