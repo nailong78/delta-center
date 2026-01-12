@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Delta Force Ops Center - iOS 26</title>
+    <title>三角洲行动-作战部署系统</title>
     <style>
         :root {
             --ios-bg: #FFFFFF;
@@ -12,6 +12,7 @@
             --accent-blue: #007AFF;
             --ios-blur: blur(30px) saturate(210%);
             --spring-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --liquid-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -22,8 +23,9 @@
                               radial-gradient(at 100% 100%, #fff5f8 0%, transparent 40%);
             color: #000; 
             font-family: -apple-system, "SF Pro Display", "PingFang SC", sans-serif;
-            padding-bottom: 120px;
+            padding-bottom: 140px;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
         header {
@@ -34,7 +36,39 @@
             text-align: center; font-weight: 700; font-size: 17px;
         }
 
-        .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+        .container { padding: 16px; max-width: 480px; margin: 0 auto; width: 100%; }
+        
+        /* 奶龙说明区样式 */
+        .dev-notice {
+            background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.2));
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+        }
+        .dev-notice h2 { font-size: 14px; color: #1c1c1e; margin-bottom: 4px; }
+        .dev-notice p { font-size: 12px; color: #8e8e93; line-height: 1.4; }
+        
+        .wish-text {
+            font-size: 18px; font-weight: 800; margin-top: 12px;
+            background: linear-gradient(90deg, #ff0000, #ff8000, #ff0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 2s linear infinite;
+        }
+
+        @keyframes glow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        /* 爆炸特效容器 */
+        .boom-particle {
+            position: fixed; pointer-events: none; z-index: 9999;
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+
         .section-title { font-size: 13px; color: #8e8e93; margin: 15px 0 10px 10px; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .liquid-card {
@@ -45,10 +79,13 @@
             margin-bottom: 14px;
             backdrop-filter: blur(15px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.04);
-            transition: all 0.4s var(--spring-easing);
+            transition: transform 0.4s var(--spring-easing), opacity 0.4s ease;
             cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
         }
 
+        .liquid-card.show { opacity: 1; transform: translateY(0) scale(1); }
         .liquid-card:active { transform: scale(0.94); background: rgba(255, 255, 255, 0.95); }
         .item-flex { display: flex; align-items: center; gap: 14px; }
         .icon-wrap { width: 46px; height: 46px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
@@ -59,140 +96,221 @@
 
         #ios-alert-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.15); z-index: 2000;
-            display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(8px); transition: all 0.3s;
+            background: rgba(255,255,255,0.01); z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(0px); opacity: 0; pointer-events: none;
+            transition: all 0.5s var(--liquid-easing);
         }
 
         .ios-alert {
             background: var(--liquid-glass);
             backdrop-filter: var(--ios-blur); -webkit-backdrop-filter: var(--ios-blur);
-            width: 80%; max-width: 300px;
-            border-radius: 28px;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
-            padding: 24px 20px;
-            text-align: center;
-            transform: scale(0.8); opacity: 0;
-            transition: all 0.4s var(--spring-easing);
+            width: 85%; max-width: 320px;
+            border-radius: 32px; border: 1px solid var(--glass-border);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.12);
+            padding: 28px 24px; text-align: center;
+            transform: scale(0.5) translateY(100px);
+            transition: all 0.5s var(--spring-easing);
         }
 
-        .alert-active #ios-alert-overlay { display: flex; }
-        .alert-active .ios-alert { transform: scale(1); opacity: 1; }
-        .alert-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: #000; }
-        .alert-body { font-size: 14px; color: #3a3a3c; line-height: 1.5; margin-bottom: 24px; text-align: left; }
+        body.alert-active #ios-alert-overlay { opacity: 1; pointer-events: auto; backdrop-filter: blur(12px); background: rgba(0,0,0,0.1); }
+        body.alert-active .ios-alert { transform: scale(1) translateY(0); }
+
+        .alert-title { font-size: 19px; font-weight: 700; margin-bottom: 14px; color: #000; letter-spacing: -0.5px; }
+        .alert-body { font-size: 15px; color: #3a3a3c; line-height: 1.6; margin-bottom: 26px; text-align: left; }
         .alert-btn { 
-            width: 100%; padding: 14px; border: none; border-radius: 16px; 
-            background: var(--accent-blue); color: #fff; font-weight: 700; font-size: 16px;
-            box-shadow: 0 8px 20px rgba(0,122,255,0.3);
+            width: 100%; padding: 16px; border: none; border-radius: 20px; 
+            background: var(--accent-blue); color: #fff; font-weight: 700; font-size: 17px;
+            box-shadow: 0 10px 25px rgba(0,122,255,0.3); transition: transform 0.2s;
         }
+        .alert-btn:active { transform: scale(0.95); }
 
-        .ios-nav {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 400px; height: 74px;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: var(--ios-blur); -webkit-backdrop-filter: var(--ios-blur);
-            border: 1px solid var(--glass-border);
-            border-radius: 37px;
+        .nav-container {
+            position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%);
+            width: 92%; max-width: 420px; height: 74px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(25px) saturate(180%); -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 0.5px solid rgba(255, 255, 255, 0.4); border-radius: 37px;
             display: flex; justify-content: space-around; align-items: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1); z-index: 1000;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08); z-index: 1000; padding: 0 8px;
         }
 
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: #8e8e93; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .nav-item.active { color: var(--accent-blue); transform: scale(1.1); }
+        .nav-container::before {
+            content: ''; position: absolute; left: 8px; width: calc((100% - 16px) / 3); height: 60px;
+            background: rgba(255, 255, 255, 0.85); border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 0 0 0.5px rgba(255,255,255,0.5);
+            transition: transform 0.6s var(--spring-easing); z-index: 0; pointer-events: none;
+        }
+
+        .nav-container[data-active="0"]::before { transform: translateX(0); }
+        .nav-container[data-active="1"]::before { transform: translateX(100%); }
+        .nav-container[data-active="2"]::before { transform: translateX(200%); }
+
+        .nav-item { 
+            position: relative; z-index: 1; flex: 1; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #636366; font-size: 10px; font-weight: 600; cursor: pointer;
+        }
+
+        .nav-item.active { color: var(--accent-blue); }
+        .nav-item i { font-style: normal; font-size: 22px; transition: transform 0.5s var(--spring-easing); }
+        .nav-item.active i { transform: translateY(-4px) scale(1.15); }
+
     </style>
 </head>
 <body class="light-mode">
 
-<header>三角洲行动：消耗品查询系统 (S7)</header>
+<header>三角洲行动-作战部署系统</header>
 
-<div class="container" id="content-view"></div>
+<div class="container">
+    <div class="dev-notice">
+        <h2>本站由奶龙独立开发部署</h2>
+        <p>所有数据仅由历史数据整理分析得出，仅供参考</p>
+        <div class="wish-text" onclick="createExplosion(event)">奶龙祝您天天开心，把把得吃！💥</div>
+    </div>
+    <div id="content-view"></div>
+</div>
 
 <div id="ios-alert-overlay" onclick="closeAlert()">
-    <div class="ios-alert" onclick="event.stopPropagation()">
+    <div class="ios-alert" id="alert-box" onclick="event.stopPropagation()">
         <div class="alert-title" id="alert-title"></div>
         <div class="alert-body" id="alert-body"></div>
         <button class="alert-btn" onclick="closeAlert()">确定</button>
     </div>
 </div>
 
-<nav class="ios-nav">
-    <div class="nav-item active" onclick="render('meds', this)">💊<span>药品列表</span></div>
-    <div class="nav-item" onclick="render('sets', this)">🎒<span>方案推荐</span></div>
-    <div class="nav-item" onclick="render('info', this)">🩺<span>状态说明</span></div>
+<nav class="nav-container" id="main-nav" data-active="0">
+    <div class="nav-item active" onclick="render('meds', this, 0)"><i>💊</i><span>药品列表</span></div>
+    <div class="nav-item" onclick="render('sets', this, 1)"><i>🎒</i><span>方案推荐</span></div>
+    <div class="nav-item" onclick="render('info', this, 2)"><i>🩺</i><span>状态说明</span></div>
 </nav>
 
 <script>
     const data = {
         meds: [
-            { group: "止血与手术 (核心)", list: [
-                { n: "CAT止血带", p: "2,600", m: "2.5秒 | 4次", d: "极速止血，适用于高强度对抗。不具备手术功能，仅针对流血状态。", i: "🩹" },
-                { n: "战地医疗包", p: "45,000", m: "5.0秒 | 12次", d: "顶级医疗物资，可同时处理流血、手术及回血，空间占用较大。", i: "🎒" },
-                { n: "标准手术包", p: "8,500", m: "8.0秒 | 4次", d: "处理骨折和损毁部位的核心物资，使用时移动受限明显。", i: "🧵" }
+            { group: "止痛类 (屏蔽负面状态)", list: [
+                { n: "DVE止疼片", p: "24,000", m: "3秒启用 | 350秒持续", d: "最强推荐。猛攻前必吃，持续时间极长，可有效应对部位损坏。", i: "💊" },
+                { n: "瓶装抗生素", p: "6,600", m: "4秒启用 | 240秒持续", d: "常见的止疼药，性价比之选。", i: "🍼" },
+                { n: "缓释止疼片", p: "2,000", m: "4秒启用 | 200秒持续", d: "经济实用型，通常随简易手术包附赠。", i: "🍬" }
             ]},
-            { group: "止痛与强化", list: [
-                { n: "DVE止疼片", p: "24,000", m: "350秒 | 5次", d: "止疼时间最长，防止因部位损毁导致的移速下降和画面模糊。", i: "💊" },
-                { n: "肾上腺素注射器", p: "12,000", m: "120秒 | 1次", d: "瞬间恢复耐力上限并提供持续回血效果，突围必备。", i: "💉" },
-                { n: "瓶装抗生素", p: "6,600", m: "240秒 | 3次", d: "高性价比止疼选择，适合常规任务携带。", i: "🍼" }
+            { group: "手术与止血 (修复损毁)", list: [
+                { n: "DEK野战手术包", p: "27,000", m: "5秒启用 | 7次使用", d: "最好用的手术包。启用速度最快，适合高压环境战斗。", i: "🧳" },
+                { n: "战术快拆手术包", p: "9,000", m: "7秒启用 | 4次使用", d: "常见的战术包，兼顾速度与次数。", i: "💼" },
+                { n: "CAT止血带", p: "2,600", m: "2.5秒启用 | 4次", d: "修复伤口极快。针对流血负面状态，不具备回血功能。", i: "🩹" }
+            ]},
+            { group: "血包类 (恢复生命值)", list: [
+                { n: "战地医疗箱", p: "175,000", m: "800耐久 | 30HP/s", d: "大佬专用顶配。超长续航，兼顾回血与伤口治疗。", i: "🚨" },
+                { n: "户外医疗箱", p: "54,000", m: "350耐久 | 20HP/s", d: "中产首选，掉血严重时非常好用。", i: "📦" },
+                { n: "强效注射器", p: "6,900", m: "3秒启用 | 12HP/s", d: "极速回血。3.5秒完成，高强度交火时的保命神器。", i: "💉" }
             ]}
         ],
         sets: [
-            { t: "GTI 高压突击方案", c: "#FF3B30", d: "DVE止疼药 + 战地箱 + CAT止血带 + 强化注射器", p: "高净值行动" },
-            { t: "零号勤务 均衡方案", c: "#FF9500", d: "抗生素 + 标准手术包 + 弹力绷带 + 500ml生理盐水", p: "中度危险区" },
-            { t: "入场 经济方案", c: "#34C759", d: "止疼片 + 简易绷带 + 简易手术工具", p: "摸金跑图" }
+            { t: "绝密高压方案", c: "#FF3B30", d: "DVE + 注射器x3 + 止血带 + 战地医疗箱 + DEK手术包", p: "猛攻打架必备，极速回血" },
+            { t: "机密正常方案", c: "#FF9500", d: "DVE + 注射器x2 + 止血带 + 战术快拆 + 医疗箱", p: "万金油组合，适应大多数机密任务" },
+            { t: "机密低压/常规方案", c: "#34C759", d: "抗生素 + 注射器 + 止血带 + 战术快拆 + 野战急救包", p: "性价比之选，价格低廉功能全" },
+            { t: "跑刀 ECO方案", c: "#8E8E93", d: "缓释止疼片 + 注射器 + 简易手术包", p: "最低成本，保障基本撤离" }
         ],
         info: [
-            { t: "部位损毁 (骨折)", d: "腿部损毁将无法冲刺及跳跃；手部损毁将大幅增加武器后坐力并减慢开镜速度。需使用手术包修复。" },
-            { t: "重度流血", d: "若不及时止血，每5秒扣除1%总生命值上限，且无法通过普通回血道具恢复。" },
-            { t: "止疼覆盖", d: "止疼药可忽略部位损毁带来的负面移动效果，但不会恢复部位血量。" }
+            { t: "部位损毁 (骨折)", d: "手臂受创影响后坐力及开镜速度；腿部受创无法冲刺及跳跃，大幅降低移动速度。需手术包修复。" },
+            { t: "流血状态", d: "每5秒扣除1%生命上限。每个部位最高累积7处伤口，多处伤口叠加扣血效果。" },
+            { t: "疼痛/负面", d: "疼痛会导致视线模糊。止疼药可暂时屏蔽疼痛和骨折带来的移动限制。" }
         ]
     };
 
-    function render(type, el) {
+    let lastClickPos = { x: 0, y: 0 };
+
+    function createExplosion(e) {
+        const colors = ['#FF3B30', '#FF9500', '#FFCC00', '#007AFF', '#5856D6'];
+        for (let i = 0; i < 20; i++) {
+            const p = document.createElement('div');
+            p.className = 'boom-particle';
+            p.style.left = e.pageX + 'px';
+            p.style.top = e.pageY + 'px';
+            p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            const destX = (Math.random() - 0.5) * 200;
+            const destY = (Math.random() - 0.5) * 200;
+            
+            document.body.appendChild(p);
+            
+            p.animate([
+                { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                { transform: `translate(${destX}px, ${destY}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: 800 + Math.random() * 500,
+                easing: 'cubic-bezier(0, .9, .57, 1)',
+                fill: 'forwards'
+            });
+            
+            setTimeout(() => p.remove(), 1300);
+        }
+        haptic(20);
+    }
+
+    function render(type, el, index) {
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         el.classList.add('active');
+        document.getElementById('main-nav').setAttribute('data-active', index);
+        
         const view = document.getElementById('content-view');
-        let html = '';
-
-        if (type === 'meds') {
-            data.meds.forEach(g => {
-                html += `<div class="section-title">${g.group}</div>`;
-                g.list.forEach(item => {
-                    html += `
-                    <div class="liquid-card" onclick="openAlert('${item.n}', '${item.d}<br><br><b>属性：</b>${item.m}<br><b>估价：</b>${item.p}')">
-                        <div class="item-flex">
-                            <div class="icon-wrap">${item.i}</div>
-                            <div class="info-wrap">
-                                <div class="name-text">${item.n}</div>
-                                <div class="sub-text">${item.m}</div>
+        view.style.opacity = '0';
+        
+        setTimeout(() => {
+            let html = '';
+            if (type === 'meds') {
+                data.meds.forEach(g => {
+                    html += `<div class="section-title">${g.group}</div>`;
+                    g.list.forEach(item => {
+                        html += `
+                        <div class="liquid-card" onclick="openAlert(event, '${item.n}', '${item.d}<br><br><b>属性：</b>${item.m}<br><b>参考估价：</b>${item.p}')">
+                            <div class="item-flex">
+                                <div class="icon-wrap">${item.i}</div>
+                                <div class="info-wrap">
+                                    <div class="name-text">${item.n}</div>
+                                    <div class="sub-text">${item.m}</div>
+                                </div>
+                                <div class="price-text">≈${item.p}</div>
                             </div>
-                            <div class="price-text">≈${item.p}</div>
-                        </div>
+                        </div>`;
+                    });
+                });
+            } else if (type === 'sets') {
+                data.sets.forEach(s => {
+                    html += `
+                    <div class="liquid-card" onclick="openAlert(event, '${s.t}', '<b>包含：</b><br>${s.d}<br><br><b>评价：</b>${s.p}')">
+                        <div style="color:${s.c}; font-weight:800; font-size:12px; margin-bottom:6px;">${s.t}</div>
+                        <div class="name-text">${s.d}</div>
+                        <div class="sub-text" style="margin-top:5px;">${s.p}</div>
                     </div>`;
                 });
+            } else {
+                data.info.forEach(i => {
+                    html += `
+                    <div class="liquid-card" onclick="openAlert(event, '${i.t}', '${i.d}')">
+                        <div style="font-weight:700; margin-bottom:5px;">${i.t}</div>
+                        <div class="sub-text" style="font-size:13px; color:#333;">${i.d}</div>
+                    </div>`;
+                });
+            }
+            view.innerHTML = html;
+            view.style.opacity = '1';
+            
+            const cards = view.querySelectorAll('.liquid-card');
+            cards.forEach((card, i) => {
+                setTimeout(() => card.classList.add('show'), i * 40);
             });
-        } else if (type === 'sets') {
-            data.sets.forEach(s => {
-                html += `
-                <div class="liquid-card" onclick="openAlert('${s.t}', '<b>包含：</b><br>${s.d}<br><br><b>场景：</b>${s.p}')">
-                    <div style="color:${s.c}; font-weight:800; font-size:12px; margin-bottom:6px;">${s.t}</div>
-                    <div class="name-text">${s.d}</div>
-                </div>`;
-            });
-        } else {
-            data.info.forEach(i => {
-                html += `
-                <div class="liquid-card" onclick="openAlert('${i.t}', '${i.d}')">
-                    <div style="font-weight:700; margin-bottom:5px;">${i.t}</div>
-                    <div class="sub-text" style="font-size:13px; color:#333;">${i.d}</div>
-                </div>`;
-            });
-        }
-        view.innerHTML = html;
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 150);
+        
         haptic(10);
     }
 
-    function openAlert(title, body) {
+    function openAlert(e, title, body) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        lastClickPos = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+        const alertBox = document.getElementById('alert-box');
+        alertBox.style.transformOrigin = `${lastClickPos.x}px ${lastClickPos.y}px`;
         document.getElementById('alert-title').innerHTML = title;
         document.getElementById('alert-body').innerHTML = body;
         document.body.classList.add('alert-active');
@@ -200,7 +318,14 @@
     }
 
     function closeAlert() {
-        document.body.classList.remove('alert-active');
+        const alertBox = document.getElementById('alert-box');
+        alertBox.style.transform = "scale(0.5) translateY(100px)";
+        alertBox.style.opacity = "0";
+        setTimeout(() => {
+            document.body.classList.remove('alert-active');
+            alertBox.style.transform = "";
+            alertBox.style.opacity = "";
+        }, 300);
         haptic(5);
     }
 
@@ -208,7 +333,7 @@
         if (window.navigator.vibrate) window.navigator.vibrate(ms);
     }
 
-    render('meds', document.querySelector('.nav-item'));
+    render('meds', document.querySelector('.nav-item'), 0);
 </script>
 </body>
 </html>
